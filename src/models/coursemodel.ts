@@ -24,4 +24,4 @@ const courseSchema = new Schema<ICourse>(
     {timestamps:true}
 )
 
-export const Course = mongoose.model<ICourse>("Course", courseSchema); 
+export const CourseModel = mongoose.model<ICourse>("Course", courseSchema); 

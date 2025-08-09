@@ -1,11 +1,11 @@
 import express from "express";
-import { register, loginUser, getUsers, } from "../controllers/usercontroller"; 
-import {uploads} from "../middelwares/multermiddelware.ts"
+import { registerUser, loginUser, getUsers, } from "../controllers/usercontroller"; 
+import {upload} from "../middelwares/multermiddelware.ts"
 
 const router = express.Router();
 
 // Register new user
-router.post("/registeruser", uploads.single("image"),register)
+router.post("/registeruser", upload.single("image"),registerUser)
 
 // Login with email/password
 router.post("/loginuser", loginUser);

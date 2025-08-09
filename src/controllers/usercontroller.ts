@@ -4,29 +4,60 @@ import jwt from "jsonwebtoken";
 import { UserModel } from "../models/usermodel";
 
 
-export const register = async (req: Request, res: Response) => {
-    try {
-        const { name, email, password, role } = req.body;
-        const existingUser = await UserModel.findOne({ email })
-        if (existingUser)
-            return res.status(400).json({
-                message: "user already exist"
-            })
+export const registerUser = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role } = req.body;
 
-        const hashedpassword = await bcrypt.hash(password, 10);
-        const user = new UserModel({ name, email, password: hashedpassword, role });
-        await user.save();
-        return res.status(200).json({
-            message: "user registered successfully"
-        })
-    } catch (error) {
-        console.log("error to register")
-        return res.status(500).json({
-            message: "server error"
-        })
 
+    const existingUser = await UserModel.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
     }
-}
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Prepare role-specific data
+    let studentData = undefined;
+    let instructorData = undefined;
+
+    if (role === "student") {
+      studentData = {
+        enrolledCourses: [],
+        progress: {}
+      };
+    } else if (role === "instructor") {
+      instructorData = {
+        coursesCreated: [],
+        totalStudents: 0
+      };
+    } else {
+      return res.status(400).json({ message: "Invalid role provided" });
+    }
+
+    // Create user
+    const newUser = await UserModel.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      studentData,
+      instructorData
+    });
+
+    // Remove password from response
+    const userResponse = newUser.toObject();
+  
+
+    return res.status(201).json({
+      message: "User registered successfully",
+      user: userResponse
+    });
+
+  } catch (error) {
+    console.error("Registration Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 export const loginUser = async (req: Request, res: Response) => {
     try {
