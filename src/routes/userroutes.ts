@@ -1,16 +1,16 @@
 import express from "express";
-import { register, loginUser } from "../controllers/usercontroller"; 
-// 👆 yahan user.controller ka path aapke project ke structure ke hisaab se change karein
+import { register, loginUser, getUsers, } from "../controllers/usercontroller"; 
+import {uploads} from "../middelwares/multermiddelware.ts"
 
 const router = express.Router();
 
 // Register new user
-router.post("/register", register);
+router.post("/registeruser", uploads.single("image"),register)
 
 // Login with email/password
-router.post("/login", loginUser);
+router.post("/loginuser", loginUser);
+router.get("/fetchuser", getUsers);
 
-// (Optional) Google login route — agar add karna ho future me
-// router.post("/login/google", googleLogin);
+
 
 export default router;
