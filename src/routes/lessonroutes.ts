@@ -1,21 +1,19 @@
-// routes/lessonroute.ts
 import { Router } from "express";
-import { createLesson, getLessonsByCourse } from "../controllers/lessoncontroller";
-import { authenticateUser, authorizeRoles } from "../middelwares/authmiddelware";
-import { upload } from "../middelwares/multermiddelware.ts"; // fixed import
+import { createLesson, getLessonsByCourse, updateLesson, deleteLesson } from "../controllers/lessoncontroller";
+import { authenticateUser } from "../middelwares/authmiddelware";
 
 const router = Router();
 
-// Create lesson (only instructor/admin)
-router.post(
-  "/",
-  authenticateUser,
-  authorizeRoles("instructor", "admin"),
-  upload.single("file"),
-  createLesson
-);
+// Create lesson
+router.post("/", authenticateUser, createLesson);
 
 // Get lessons by course
 router.get("/:courseId", getLessonsByCourse);
+
+// Update lesson
+router.put("/:id", authenticateUser, updateLesson);
+
+// Delete lesson
+router.delete("/:id", authenticateUser, deleteLesson);
 
 export default router;
