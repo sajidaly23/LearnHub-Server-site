@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getUsers, } from "../controllers/usercontroller"; 
+import { registerUser, loginUser, getUsers, googleLogin, } from "../controllers/usercontroller"; 
 import {upload} from "../middelwares/multermiddelware.ts"
 
 const router = express.Router();
@@ -9,7 +9,10 @@ router.post("/registeruser", upload.single("image"),registerUser)
 
 // Login with email/password
 router.post("/loginuser", loginUser);
+
 router.get("/fetchuser", getUsers);
+
+router.post("/google-login", googleLogin);
 
 
 
