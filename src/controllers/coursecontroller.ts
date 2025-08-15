@@ -7,16 +7,24 @@ export const createCourse = async (req: AuthRequest, res: Response) => {
   try {
     console.log("User from req:", req.user);
     const { title, description, price } = req.body;
+
     if (!title || !description || !price) {
       return res.status(400).json({ message: "Title, description, and price are required" });
     }
 
-    // `req.user._id` will be populated by the middleware
+    // Uploaded files paths
+    const thumbnailPath = req.files && (req.files as any).thumbnail ? (req.files as any).thumbnail[0].path : null;
+    const documentPath = req.files && (req.files as any).document ? (req.files as any).document[0].path : null;
+    const videoPath = req.files && (req.files as any).video ? (req.files as any).video[0].path : null;
+
     const course = await CourseModel.create({
       title,
       description,
       price,
-      instructor: req.user?._id
+      instructor: req.user?._id,
+      thumbnail: thumbnailPath,
+      document: documentPath,
+      video: videoPath
     });
 
     return res.status(201).json(formatResponse(course, "Course created successfully"));

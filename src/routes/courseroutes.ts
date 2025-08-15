@@ -1,18 +1,11 @@
-import { Router } from "express";
-import { createCourse, getCourse, updateCourse, listCourses } from "../controllers/coursecontroller";
+import express from "express";
 import { authenticateUser } from "../middelwares/authmiddelware";
-import { upload } from "../middelwares/multermiddelware.ts"; // multer import
+import { uploadCourseFiles } from "../middelwares/multermiddelware.ts";
+import { createCourse, listCourses, getCourse, updateCourse } from "../controllers/coursecontroller";
 
-const router = Router();
+const router = express.Router();
 
-// ✅ File + Data handle karne ke liye multer middleware lagao
-router.post(
-  "/createCourse",
-  authenticateUser,
-  upload.single("thumbnail"), // file field ka naam "thumbnail"
-  createCourse
-);
-
+router.post("/createCourse", authenticateUser, uploadCourseFiles, createCourse);
 router.get("/getcourse", listCourses);
 router.get("/getcourse/:id", getCourse);
 router.put("/:id", authenticateUser, updateCourse);

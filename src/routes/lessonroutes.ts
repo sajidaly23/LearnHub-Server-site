@@ -5,7 +5,7 @@ import { authenticateUser } from "../middelwares/authmiddelware";
 const router = Router();
 
 // Create lesson
-router.post("/", authenticateUser, createLesson);
+router.post("/createLesson", authenticateUser, createLesson);
 
 // Get lessons by course
 router.get("/:courseId", getLessonsByCourse);

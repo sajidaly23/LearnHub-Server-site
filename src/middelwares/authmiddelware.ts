@@ -22,7 +22,7 @@ export const authenticateUser = (req: AuthRequest, res: Response, next: NextFunc
 const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as { _id?: string; id?: string; role: string };
 console.log("Decoded Token:", decoded);
 
-const userId = decoded._id || decoded.id; // ✅ fallback agar `_id` nahi to `id`
+const userId = decoded._id || decoded.id; // fallback agar `_id` nahi to `id`
 if (!userId) {
   return res.status(401).json({ message: "Token missing user ID" });
 }
@@ -34,7 +34,7 @@ req.user = { _id: userId, role: decoded.role };
   }
 };
 
-// ✅ Role authorization middleware
+//  Role authorization middleware
 export const authorizeRoles = (...roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
