@@ -1,15 +1,16 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 import { UserModel } from "../models/usermodel";
-import { OAuth2Client } from 'google-auth-library'
+import { OAuth2Client } from "google-auth-library";
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID as string);
 
-
+//REGISTER USER
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role } = req.body;
-
 
     const existingUser = await UserModel.findOne({ email });
     if (existingUser) {
@@ -18,93 +19,116 @@ export const registerUser = async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Prepare role-specific data
     let studentData = undefined;
     let instructorData = undefined;
 
     if (role === "student") {
-      studentData = {
-        enrolledCourses: [],
-        progress: {}
-      };
+      studentData = { enrolledCourses: [], progress: {} };
     } else if (role === "instructor") {
-      instructorData = {
-        coursesCreated: [],
-        totalStudents: 0
-      };
+      instructorData = { coursesCreated: [], totalStudents: 0 };
     } else {
       return res.status(400).json({ message: "Invalid role provided" });
     }
 
-    // Create user
     const newUser = await UserModel.create({
       name,
       email,
       password: hashedPassword,
       role,
       studentData,
-      instructorData
+      instructorData,
     });
 
-    // Remove password from response
     const userResponse = newUser.toObject();
-
+    delete (userResponse as any).password; // password remove kar do
 
     return res.status(201).json({
       message: "User registered successfully",
-      user: userResponse
+      user: userResponse,
     });
-
   } catch (error) {
     console.error("Registration Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+
+
 export const loginUser = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({
-        message: "Email and password are required"
-      });
+      return res.status(400).json({ message: "Email and password are required" });
     }
+
     const user = await UserModel.findOne({ email });
     if (!user) {
-      return res.status(404).json({
-        message: "User not found"
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const matchPassword = await bcrypt.compare(password, user.password);
     if (!matchPassword) {
-      return res.status(401).json({
-        message: "Invalid password"
-      });
+      return res.status(401).json({ message: "Invalid password" });
     }
 
     const token = jwt.sign(
-      { _id: user._id, role: user.role }, // ✅ _id ka naam sahi
+      { _id: user._id, role: user.role },
       process.env.JWT_SECRET || "",
       { expiresIn: "7d" }
     );
+
     return res.status(200).json({
       message: "User is logged in",
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-      }
+      user: { id: user._id, email: user.email, role:user.role },
     });
-
   } catch (error) {
     console.error("Login Error:", error);
-    return res.status(500).json({
-      message: "internal server error"
-    });
+    return res.status(500).json({ message: "internal server error" });
   }
 };
+
+
+
+export const forgotPasswordAndSendOTP = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found with this email" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.otp = otp;
+    user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset OTP",
+      text: `Your OTP for password reset is: ${otp}. It is valid for 10 minutes.`,
+    });
+
+    return res.status(200).json({ message: "OTP sent to your email" });
+  } catch (error) {
+    console.error("Forgot Password Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 
 
 export const getUsers = async (req: Request, res: Response) => {
@@ -112,50 +136,45 @@ export const getUsers = async (req: Request, res: Response) => {
     const users = await UserModel.find();
     return res.status(200).json({
       message: "user fetching successfully",
-      count: users.length, users
-    })
+      count: users.length,
+      users,
+    });
   } catch (error) {
-    console.error("error fetching user", error)
-    return res.status(500).json({
-      message: "internal server error", error
-    })
+    console.error("error fetching user", error);
+    return res.status(500).json({ message: "internal server error", error });
   }
-}
+};
+
+
 
 
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
-
-    // const user = await userModel.findById(userId);
     if (!userId) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
     await UserModel.findByIdAndDelete(userId);
 
-    return res.status(200).json({
-      message: "User deleted successfully",
-    });
+    return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Error deleting user:", error);
-    return res.status(500).json({
-      message: "Internal server error",
-    });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const UserId = req.params.Id;
-    const { name, email, password, role } = req.body;
-    const image = req.file ? `${req.protocol}://${req.get("host")}/uploads/profile/${req.file.filename}` : undefined;
+    const { name, email, password } = req.body;
+    const image = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/profile/${req.file.filename}`
+      : undefined;
 
     const updateFields: any = {};
-
     if (name) updateFields.name = name;
     if (email) updateFields.email = email;
     if (image) updateFields.image = image;
@@ -164,30 +183,25 @@ export const updateUser = async (req: Request, res: Response) => {
       const hashPassword = await bcrypt.hash(password, 10);
       updateFields.password = hashPassword;
     }
+
+
     const updatedUser = await UserModel.findByIdAndUpdate(
       { _id: UserId },
       updateFields,
       { new: true }
     );
 
-    if (!updateUser) {
-      return res.status(404).json({
-        message: "user not found "
-      })
+    if (!updatedUser) {
+      return res.status(404).json({ message: "user not found " });
     }
 
     return res.status(200).json({
       message: "user update successfully",
-      updateUser,
-    })
-
-
+      updatedUser,
+    });
   } catch (error) {
-    console.log("error updating user ", error)
-    return res.status(500).json({
-      message: "internal server error"
-    })
-
+    console.log("error updating user ", error);
+    return res.status(500).json({ message: "internal server error" });
   }
 };
 
@@ -196,8 +210,6 @@ export const updateUser = async (req: Request, res: Response) => {
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
-
-
 
     const user = await UserModel.findById(userId);
     if (!user) {
@@ -214,6 +226,9 @@ export const getUserById = async (req: Request, res: Response) => {
   }
 };
 
+
+
+
 export const deleteAllUsers = async (req: Request, res: Response) => {
   try {
     const result = await UserModel.deleteMany({});
@@ -223,18 +238,17 @@ export const deleteAllUsers = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Delete All Users Error:", error);
-    res.status(500).json({
-      message: "Failed to delete users",
-    });
+    res.status(500).json({ message: "Failed to delete users" });
   }
 };
 
 
+
+
 export const googleLogin = async (req: Request, res: Response) => {
   try {
-    const { token } = req.body; // frontend se Google ID token aayega
+    const { token } = req.body;
 
-    // Verify Google token
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -247,19 +261,17 @@ export const googleLogin = async (req: Request, res: Response) => {
 
     const { email, name, picture } = payload;
 
-    // Check if user exists
     let user = await UserModel.findOne({ email });
     if (!user) {
       user = await UserModel.create({
         name,
         email,
-        password: null, // Google login users ke liye password nahi hota
+        password: null,
         role: "student",
         profileImage: picture,
       });
     }
 
-    // Generate JWT
     const jwtToken = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
@@ -271,7 +283,6 @@ export const googleLogin = async (req: Request, res: Response) => {
       token: jwtToken,
       user,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Google login failed" });
