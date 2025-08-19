@@ -7,5 +7,7 @@ export const ENV = {
   JWT_SECRET: process.env.JWT_SECRET || "supersecret",
   STRIPE_SECRET: process.env.STRIPE_SECRET || "",
   EMAIL_USER: process.env.EMAIL_USER || "",
-  EMAIL_PASS: process.env.EMAIL_PASS || ""
+  EMAIL_PASS: process.env.EMAIL_PASS || "",
+  // STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || ""
+
 };
