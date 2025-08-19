@@ -1,6 +1,7 @@
 import express from "express";
 import { registerUser, loginUser,forgotPasswordAndSendOTP,  getUsers, googleLogin } from "../controllers/usercontroller"; 
 import { uploadUserImage } from "../middelwares/multermiddelware.ts";
+// import {authebticateUser} from "../middelwares/authmiddelware"
 
 const router = express.Router();
 

@@ -245,46 +245,61 @@ export const deleteAllUsers = async (req: Request, res: Response) => {
 
 
 
+
 export const googleLogin = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
 
+    if (!token) return res.status(400).json({ message: "Google token missing" });
+
+    // Verify Google ID token
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-    if (!payload) {
-      return res.status(400).json({ message: "Invalid Google token" });
-    }
+    if (!payload) return res.status(400).json({ message: "Invalid Google token" });
 
-    const { email, name, picture } = payload;
+    const { email, name, picture, sub: googleId } = payload;
 
+    // Check if user exists
     let user = await UserModel.findOne({ email });
+
     if (!user) {
+      // Create new user
       user = await UserModel.create({
         name,
         email,
-        password: null,
-        role: "student",
+        password: "", // empty string, no password
+        role: "student", // default role
         profileImage: picture,
       });
     }
 
+    // JWT generation
     const jwtToken = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
       { expiresIn: "7d" }
     );
 
-    return res.json({
+    // Only send safe fields to frontend
+    const safeUser = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+     
+    };
+
+    return res.status(200).json({
       message: "Login successful",
       token: jwtToken,
-      user,
+      user: safeUser,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Google login failed" });
+    console.error("Google login error:", error);
+    return res.status(500).json({ message: "Google login failed" });
   }
 };
