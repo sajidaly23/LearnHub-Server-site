@@ -7,6 +7,9 @@ export interface IUser extends Document {
   role: "student" | "instructor";
   otp?: string;
   otpExpiresAt?: Date;
+
+
+  
   studentData?: {
     enrolledCourses: string[];
     progress: Record<string, number>;

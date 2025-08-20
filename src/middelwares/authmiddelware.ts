@@ -14,7 +14,7 @@ export const authenticateUser = (req: AuthRequest, res: Response, next: NextFunc
   }
 
   const token = header.split(" ")[1];
-  if (!token) {
+  if (!token) { 
     return res.status(401).json({ message: "No token provided" });
   }
 
