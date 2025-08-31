@@ -5,35 +5,30 @@ import { AuthRequest } from "../middelwares/authmiddelware";
 
 export const createCourse = async (req: AuthRequest, res: Response) => {
   try {
-    console.log("User from req:", req.user);
-    const { title, description, price } = req.body;
-
-    if (!title || !description || !price) {
-      return res.status(400).json({ message: "Title, description, and price are required" });
+    if (req.user?.role !== "instructor" && req.user?.role !== "admin") {
+      return res.status(403).json({ message: "Only instructor or admin can create courses" });
     }
 
-    // Uploaded files paths
-    const thumbnailPath = req.files && (req.files as any).thumbnail ? (req.files as any).thumbnail[0].path : null;
-    const documentPath = req.files && (req.files as any).document ? (req.files as any).document[0].path : null;
-    const videoPath = req.files && (req.files as any).video ? (req.files as any).video[0].path : null;
+    const { title, description, price, category } = req.body;
 
-    const course = await CourseModel.create({
+    const newCourse = await CourseModel.create({
       title,
       description,
       price,
-      instructor: req.user?._id,
-      thumbnail: thumbnailPath,
-      document: documentPath,
-      video: videoPath
+      category,
+      instructor: req.user._id,   // yaha token wala user add ho raha hai
     });
 
-    return res.status(201).json(formatResponse(course, "Course created successfully"));
-  } catch (error) {
-    return res.status(500).json({ message: "Internal server error", error });
+    res.status(201).json({
+      message: "Course created successfully",
+      course: newCourse,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Error creating course", error: err });
   }
 };
 
-export const listCourses = async (req: Request, res: Response) => {
+  export const listCourses = async (req: Request, res: Response) => {
   try {
     const courses = await CourseModel.find().populate("instructor", "name email");
     return res.status(200).json(formatResponse(courses, "Courses fetched successfully"));
@@ -79,4 +74,4 @@ export const updateCourse = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     return res.status(500).json({ message: "Internal server error", error });
   }
-};
+}; 

@@ -29,7 +29,7 @@ export const createCheckoutSession = async (
       {
         price_data: {
           currency: "usd",
-          product_data: {
+          product_data: { 
             name: course.title,
             description: course.description,
           },

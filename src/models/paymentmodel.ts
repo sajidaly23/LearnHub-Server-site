@@ -10,7 +10,7 @@ export interface IPayment extends Document{
     status: "pending" | "completed" | "failded";
 
 }
-
+ 
 const PaymentSchema = new Schema<IPayment>({
   user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   course: { type: Schema.Types.ObjectId, ref: "Course", required: true },

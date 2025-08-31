@@ -1,40 +1,64 @@
+
+
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
-import fs from "fs";
-import userRoutes from "./routes/userroutes";
+import { createServer } from "http";
+
 import { connectDB } from "./utils/connectDB";
+import { initSocket } from "./sockets/chatsocket";
+
+// routes
+import userRoutes from "./routes/userroutes";
 import courseRoutes from "./routes/courseroutes";
-import lessonRoutes from "./routes/lessonroutes"; 
+import lessonRoutes from "./routes/lessonroutes";
 import paymentRoutes from "./routes/paymentroutes";
-import { OAuth2Client } from "google-auth-library";
 import authRoutes from "./routes/authroutes";
+import studentRoutes from "./routes/studentroutes";
+import instructorRoutes from "./routes/instructorRoutes";
+import adminRoutes from "./routes/adminroutes";
+import enrollmentRoutes from "./routes/enrollementroutes";
+import chatRoutes from "./routes/chatroutes";
+
 
 dotenv.config();
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+import dotenv from "dotenv";
 
 const app = express();
-const PORT = process.env.PORT || 5000; 
+const PORT = process.env.PORT || 5000;
 
-//  JSON & Form-data parsers
+// middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors({ origin: "*", credentials: true }));
 
-//  Connect DB
+// connect DB
 connectDB();
 
-app.use(cors({
-  origin: "*", // Allow all origins
-  credentials: true,
-}));
-
-//  Routes
+// main routes
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/payment", paymentRoutes);
 
-app.listen(PORT, () => {
+// role-based routes
+app.use("/api/student", studentRoutes);
+app.use("/api/instructor", instructorRoutes);
+app.use("/api/admin", adminRoutes);
+
+
+// sabse pehle webhook route add karo
+app.use("/api/payment", paymentRoutes);
+
+// chat routes
+app.use("/api/chat", chatRoutes);
+
+// create server + socket
+const server = createServer(app);
+initSocket(server);
+
+// start server
+server.listen(PORT, () => {
   console.log(` Server is running on port ${PORT}`);
 });

@@ -8,10 +8,9 @@ export const stripeWebhook = async (req: Request, res: Response) => {
 
   let event;
   try {
-    // Stripe webhook verify karega
     event = stripe.webhooks.constructEvent(req.body, sig, ENV.STRIPE_WEBHOOK_SECRET);
   } catch (err: any) {
-    console.error("Webhook signature verification failed:", err.message);
+    console.error(" Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -19,17 +18,16 @@ export const stripeWebhook = async (req: Request, res: Response) => {
     case "checkout.session.completed": {
       const session = event.data.object as any;
 
-      // Jo session aapne createSession mai banaya tha
-      // ussi stripeIntentId ko find karke update karna hai
       await Payment.findOneAndUpdate(
-        { stripeIntentId: session.id },
+        { stripeIntentId: session.id }, // same id as stored during createSession
         {
-          status: "paid",
-          amount: session.amount_total ? session.amount_total / 100 : 0, // Stripe paisa cents mai deta hai
+          status: "completed",
+          amount: session.amount_total ? session.amount_total / 100 : 0,
+          updatedAt: new Date(),
         }
       );
 
-      console.log(" Payment successful & updated in DB");
+      console.log(" Payment successful & updated in DB:", session.id);
       break;
     }
 
@@ -38,15 +36,15 @@ export const stripeWebhook = async (req: Request, res: Response) => {
 
       await Payment.findOneAndUpdate(
         { stripeIntentId: session.id },
-        { status: "expired" }
+        { status: "expired", updatedAt: new Date() }
       );
 
-      console.log(" Payment expired");
+      console.log("⚠️ Payment expired:", session.id);
       break;
     }
 
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      console.log(`ℹ️ Unhandled event type ${event.type}`);
   }
 
   res.json({ received: true });
